@@ -1,9 +1,9 @@
 {
-    "id": "db5e3c23",
-    "name": "Copy CSS to Clipboard",
+    "id": "8101d9d9",
+    "name": "Copy SASS to Clipboard",
     "version": "1.1.0",
 
-    "description": "Quickly copy CSS code for text styles, colors, gradients, shadows, etc. to the clipboard.\n\nThis plugin is open source and only 200 lines of code!",
+    "description": "Quickly copy SASS code for text styles, colors, gradients, shadows, etc. to the clipboard.\n\nThis plugin is open source and only 200 lines of code!",
     "icons": [
         { "width": 96, "height": 96, "path": "icon@2x.png" }
     ],
@@ -16,7 +16,7 @@
     "uiEntryPoints": [
         {
             "type": "menu",
-            "label": "Copy CSS",
+            "label": "Copy SASS",
             "commandId": "copy",
             "shortcut": { "mac": "Cmd+Shift+Alt+C", "win": "Ctrl+Shift+Alt+C" }
         }

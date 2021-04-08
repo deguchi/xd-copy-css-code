@@ -52,7 +52,7 @@ function colorToCSS(solidColor) {
     if (solidColor.a !== 255) {
         return `rgba(${solidColor.r}, ${solidColor.g}, ${solidColor.b}, ${num(solidColor.a/255)})`;
     } else {
-        return solidColor.toHex();
+        return solidColor.toHex(true);
     }
 }
 
@@ -73,11 +73,38 @@ function copy(selection) {
 
     var css = "";
 
+    // Fill
+    var hasBgBlur = (node.blur && node.blur.visible && node.blur.isBackgroundEffect);
+    var fillName = (node instanceof sg.Text)? "color" : "background";
+    if (node.fill && node.fillEnabled && !hasBgBlur) {
+        var fill = node.fill;
+        if (fill instanceof sg.Color) {
+            css += `${fillName}: ${colorToCSS(fill)}\n`;
+        } else if (fill.colorStops) {
+            var stops = fill.colorStops.map(stop => {
+                return colorToCSS(stop.color) + " " + num(stop.stop * 100) + "%";
+            });
+            css += `${fillName}: linear-gradient(${ stops.join(", ") })\n`;  // TODO: gradient direction!
+        } else if (fill instanceof sg.ImageFill) {
+            css += `/* background: url(...); */\n`;
+        }
+    } else {
+        css += `${fillName}: transparent\n`;
+    }
+
+    // Stroke
+    if (node.stroke && node.strokeEnabled) {
+        var stroke = node.stroke;
+        css += `border: ${num(node.strokeWidth)}px solid ${colorToCSS(stroke)}\n`;
+        // TODO: dashed lines!
+    }
+
+
     // Size - for anything except point text
     if (!(node instanceof sg.Text && !node.areaBox)) {
         var bounds = node.localBounds;
-        css += `width: ${num(bounds.width)}px;\n`;
-        css += `height: ${num(bounds.height)}px;\n`;
+        css += `width: ${num(bounds.width)}px\n`;
+        css += `height: ${num(bounds.height)}px\n`;
     }
 
     // Corner metrics
@@ -87,69 +114,46 @@ function copy(selection) {
         var trbl = eq(corners.topRight, corners.bottomLeft);
         if (tlbr && trbl) {
             if (eq(corners.topLeft, corners.topRight)) {
-                css += `border-radius: ${num(corners.topLeft)}px;\n`;
+                css += `border-radius: ${num(corners.topLeft)}px\n`;
             } else {
-                css += `border-radius: ${num(corners.topLeft)}px ${num(corners.topRight)}px;\n`;
+                css += `border-radius: ${num(corners.topLeft)}px ${num(corners.topRight)}px\n`;
             }
         } else {
-            css += `border-radius: ${num(corners.topLeft)}px ${num(corners.topRight)}px ${num(corners.bottomRight)}px ${num(corners.bottomLeft)}px;\n`;
+            css += `border-radius: ${num(corners.topLeft)}px ${num(corners.topRight)}px ${num(corners.bottomRight)}px ${num(corners.bottomLeft)}px\n`;
         }
     }
 
     // Text styles
     if (node instanceof sg.Text) {
         var textStyles = node.styleRanges[0];
-        if (textStyles.fontFamily.includes(" ")) {
-            css += `font-family: "${textStyles.fontFamily}";\n`;
-        } else {
-            css += `font-family: ${textStyles.fontFamily};\n`;
-        }
-        css += `font-weight: ${styleToWeight(textStyles.fontStyle)};\n`;
+        // if (textStyles.fontFamily.includes(" ")) {
+        //     css += `font-family: "${textStyles.fontFamily}"\n`;
+        // } else {
+        //     css += `font-family: ${textStyles.fontFamily}\n`;
+        // }
+        // css += `font-weight: ${styleToWeight(textStyles.fontStyle)}\n`;
         if (styleIsItalic(textStyles.fontStyle)) {
-            css += `font-style: italic;\n`;
+            css += `font-style: italic\n`;
         }
         if (textStyles.underline) {
-            css += `text-decoration: underline;\n`;
+            css += `text-decoration: underline\n`;
         }
-        css += `font-size: ${num(textStyles.fontSize)}px;\n`;
+        css += `font-size: ${num(textStyles.fontSize)}px\n`;
         if (textStyles.charSpacing !== 0) {
-            css += `letter-spacing: ${num(textStyles.charSpacing / 1000)}em;\n`;
+            css += `letter-spacing: ${num(textStyles.charSpacing / 1000)}em\n`;
         }
         if (node.lineSpacing !== 0) {
-            css += `line-height: ${num(node.lineSpacing)}px;\n`;
+            css += `line-height: ${num(node.lineSpacing)}px\n`;
         }
-        css += `text-align: ${node.textAlign};\n`;
+        if (node.textAlign !== 'left') {
+            css += `text-align: ${node.textAlign}\n`;
+        }
     }
 
-    // Fill
-    var hasBgBlur = (node.blur && node.blur.visible && node.blur.isBackgroundEffect);
-    var fillName = (node instanceof sg.Text)? "color" : "background";
-    if (node.fill && node.fillEnabled && !hasBgBlur) {
-        var fill = node.fill;
-        if (fill instanceof sg.Color) {
-            css += `${fillName}: ${colorToCSS(fill)};\n`;
-        } else if (fill.colorStops) {
-            var stops = fill.colorStops.map(stop => {
-                return colorToCSS(stop.color) + " " + num(stop.stop * 100) + "%";
-            });
-            css += `${fillName}: linear-gradient(${ stops.join(", ") });\n`;  // TODO: gradient direction!
-        } else if (fill instanceof sg.ImageFill) {
-            css += `/* background: url(...); */\n`;
-        }
-    } else {
-        css += `${fillName}: transparent;\n`;
-    }
-
-    // Stroke
-    if (node.stroke && node.strokeEnabled) {
-        var stroke = node.stroke;
-        css += `border: ${num(node.strokeWidth)}px solid ${colorToCSS(stroke)};\n`;
-        // TODO: dashed lines!
-    }
 
     // Opacity
     if (node.opacity !== 1) {
-        css += `opacity: ${num(node.opacity)};\n`;
+        css += `opacity: ${num(node.opacity)}\n`;
     }
 
     // Dropshadow
@@ -157,11 +161,11 @@ function copy(selection) {
         var shadow = node.shadow;
         var shadowSettings = `${num(shadow.x)}px ${num(shadow.y)}px ${num(shadow.blur)}px ${colorToCSS(shadow.color)}`;
         if (node instanceof sg.Text) {
-            css += `text-shadow: ${shadowSettings};\n`;
+            css += `text-shadow: ${shadowSettings}\n`;
         } else if (node instanceof sg.Rectangle) {
-            css += `box-shadow: ${shadowSettings};\n`;
+            css += `box-shadow: ${shadowSettings}\n`;
         } else {
-            css += `filter: drop-shadow(${shadowSettings});\n`;
+            css += `filter: drop-shadow(${shadowSettings})\n`;
         }
     }
 
@@ -170,7 +174,7 @@ function copy(selection) {
         var blur = node.blur;
         if (blur.isBackgroundEffect) {
             // Blur itself
-            var backdropCSS = `backdrop-filter: blur(${blur.blurAmount}px);\n`;
+            var backdropCSS = `backdrop-filter: blur(${blur.blurAmount}px)\n`;
             css += `/* Note: currently only Safari supports backdrop-filter */\n`;
             css += backdropCSS;
             css += `--webkit-` + backdropCSS;
@@ -180,9 +184,9 @@ function copy(selection) {
             // background-color in CSS. (Can't use 'backdrop-filter: brightness()', which just multiplies each RGB value & also causes hue
             // shifts when some channels become saturated).
             if (blur.brightnessAmount > 0) {
-                css += `background-color: rgba(255, 255, 255, ${num(blur.brightnessAmount / 100)});\n`;
+                css += `background-color: rgba(255, 255, 255, ${num(blur.brightnessAmount / 100)})\n`;
             } else if (blur.brightnessAmount < 0) {
-                css += `background-color: rgba(0, 0, 0, ${-num(blur.brightnessAmount / 100)});\n`;
+                css += `background-color: rgba(0, 0, 0, ${-num(blur.brightnessAmount / 100)})\n`;
             }
 
             // Fill opacity
@@ -192,7 +196,7 @@ function copy(selection) {
                 css += `/* (plus shape's fill blended on top as a separate layer with ${num(blur.fillOpacity * 100)}% opacity) */\n`;
             }
         } else {
-            css += `filter: ${blur.blurAmount}px;\n`;
+            css += `filter: ${blur.blurAmount}px\n`;
         }
     }
 
