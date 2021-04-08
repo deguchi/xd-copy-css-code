@@ -138,12 +138,12 @@ function copy(selection) {
         if (textStyles.underline) {
             css += `text-decoration: underline\n`;
         }
-        css += `font-size: ${num(textStyles.fontSize)}px\n`;
+        css += `font-size: rem(${num(textStyles.fontSize)})\n`;
         if (textStyles.charSpacing !== 0) {
             css += `letter-spacing: ${num(textStyles.charSpacing / 1000)}em\n`;
         }
         if (node.lineSpacing !== 0) {
-            css += `line-height: ${num(node.lineSpacing)}px\n`;
+            css += `line-height: rem(${num(node.lineSpacing)})\n`;
         }
         if (node.textAlign !== 'left') {
             css += `text-align: ${node.textAlign}\n`;
